@@ -1,0 +1,21 @@
+## .gitignore for .NET / WPF
+
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+*.useroscache
+*.sln.docstates
+
+# User specific config
+config.json
+
+# IDE / Editor files
+.idea/
+.vscode/
+*.swp
+*.swo

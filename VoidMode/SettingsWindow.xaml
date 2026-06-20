@@ -1,0 +1,26 @@
+<Window x:Class="VoidMode.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="VoidMode Settings" Height="450" Width="400" WindowStartupLocation="CenterScreen">
+    <Grid Margin="20">
+        <StackPanel>
+            <TextBlock Text="VoidMode Settings" FontSize="20" FontWeight="Bold" Margin="0,0,0,20"/>
+            
+            <TextBlock Text="Startup Applications" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <ListBox x:Name="AppListbox" Height="100" Margin="0,0,0,10"/>
+            <DockPanel Margin="0,0,0,20">
+                <Button x:Name="AddBtn" Content="Add App" Width="80" DockPanel.Dock="Right" Click="AddBtn_Click"/>
+                <Button x:Name="RemoveBtn" Content="Remove" Width="80" DockPanel.Dock="Left" Margin="0,0,10,0" Click="RemoveBtn_Click"/>
+            </DockPanel>
+
+            <TextBlock Text="Features" FontWeight="SemiBold" Margin="0,0,0,10"/>
+            <CheckBox x:Name="ChkBlackScreen" Content="Enable Black Screen" Margin="0,0,0,5"/>
+            <CheckBox x:Name="ChkDisplayOff" Content="Enable Display Off" Margin="0,0,0,5"/>
+            <CheckBox x:Name="ChkMute" Content="Enable Audio Mute" Margin="0,0,0,5"/>
+            <CheckBox x:Name="ChkAutoKill" Content="Auto-Kill Startup Apps on Exit" Margin="0,0,0,5"/>
+
+            <Button x:Name="StartBtn" Content="Enter VoidMode" Height="40" Margin="0,20,0,0" 
+                    Background="Black" Foreground="White" FontWeight="Bold" Click="StartBtn_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
