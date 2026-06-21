@@ -20,7 +20,6 @@ Name: "desktopicon"; Description: "デスクトップにアイコンを作成す
 [Files]
 ; .issファイルから見た相対パス (installer/ -> ../publish/) を指定
 Source: "..\publish\VoidMode.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\publish\config.json"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\VoidMode"; Filename: "{app}\VoidMode.exe"
