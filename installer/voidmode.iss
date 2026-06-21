@@ -4,7 +4,7 @@ AppVersion=1.0.0
 DefaultDirName={autopf}\VoidMode
 DefaultGroupName=VoidMode
 AllowNoIcons=yes
-OutputDir=userdocs:VoidMode\bin\Release
+OutputDir=.\publish
 OutputBaseFilename=VoidModeInstaller
 Compression=lzma
 SolidCompression=yes
@@ -18,7 +18,7 @@ Name: "japanese"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "デスクトップにアイコンを作成する"; GroupDescription: "追加タスク:"; Flags: checked
 
 [Files]
-; 以下のパスは GitHub Actions の publish ディレクトリからの相対パスとして想定
+; GitHub Actionsのビルド出力ディレクトリを指定
 Source: "VoidMode.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "config.json"; DestDir: "{app}"; Flags: ignoreversion
 

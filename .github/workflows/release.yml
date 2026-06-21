@@ -21,19 +21,21 @@ jobs:
       - name: Publish Application
         run: dotnet publish VoidMode/VoidMode.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=true -o ./publish
 
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
       - name: Compile Inno Setup Installer
-        uses: jsconvergence/innosetup-action@v1
-        with:
-          iss-file: installer/voidmode.iss
-          install-dir: ./publish
-        # Inno Setup Actionの仕様に基づき、出力先を制御
-        # outputsは自動的に Artifacts に保存される
+        shell: pwsh
+        run: |
+          # Inno Setupのコンパイラパスを特定して実行
+          # 通常、Chocolateyでインストールするとパスが通りますが、明示的に呼び出します
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /O"./publish" installer/voidmode.iss
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ${{ steps.innosetup.outputs.installer }}
+            ./publish/VoidModeInstaller.exe
             ./publish/VoidMode.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
