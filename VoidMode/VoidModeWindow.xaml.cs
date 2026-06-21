@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Threading.Tasks;
 using NAudio.CoreAudioApi;
 
 namespace VoidMode
@@ -63,7 +64,6 @@ namespace VoidMode
             _inputTimer = new DispatcherTimer();
             _inputTimer.Interval = TimeSpan.FromMilliseconds(200);
             _inputTimer.Tick += (s, e) => {
-                // Corrected to MouseButtonState
                 if (Mouse.LeftButton == MouseButtonState.Pressed || Keyboard.IsKeyDown(Key.Escape))
                 {
                     ShowReturnMessage();
@@ -122,26 +122,47 @@ namespace VoidMode
             Application.Current.Shutdown();
         }
 
-        private void StartVoidMode()
+        private async void StartVoidMode()
         {
-            foreach (var path in _config.AppPaths)
+            // UIスレッドをブロックしてクラッシュさせるのを防ぐため、
+            // OSへの重いリクエストはすべてバックグラウンドスレッドで実行する
+            await Task.Run(() =>
             {
-                try {
-                    _startedProcesses.Add(Process.Start(path));
-                } catch (Exception ex) {
-                    Debug.WriteLine($"Failed to start {path}: {ex.Message}");
+                try
+                {
+                    // 1. Start Apps
+                    foreach (var path in _config.AppPaths)
+                    {
+                        try {
+                            var proc = Process.Start(path);
+                            if (proc != null)
+                            {
+                                lock(_startedProcesses) {
+                                    _startedProcesses.Add(proc);
+                                }
+                            }
+                        } catch (Exception ex) {
+                            Debug.WriteLine($"Failed to start {path}: {ex.Message}");
+                        }
+                    }
+
+                    // 2. Mute Audio
+                    if (_config.EnableMute)
+                    {
+                        MuteAudio();
+                    }
+
+                    // 3. Display Off
+                    if (_config.EnableDisplayOff)
+                    {
+                        SendMessage((IntPtr)0xffff, WM_SYSCOMMAND, (IntPtr)SC_MONITORPOWER, (IntPtr)MONITOR_OFF);
+                    }
                 }
-            }
-
-            if (_config.EnableMute)
-            {
-                MuteAudio();
-            }
-
-            if (_config.EnableDisplayOff)
-            {
-                SendMessage((IntPtr)0xffff, WM_SYSCOMMAND, (IntPtr)SC_MONITORPOWER, (IntPtr)MONITOR_OFF);
-            }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Critical error in StartVoidMode: {ex.Message}");
+                }
+            });
         }
 
         private void MuteAudio()
