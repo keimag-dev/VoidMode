@@ -16,7 +16,6 @@ namespace VoidMode
                     return LoadFromFile(AppPaths.ConfigPath);
                 }
 
-                // Migration path for older development builds that stored config next to the executable.
                 if (File.Exists(AppPaths.LegacyConfigPath))
                 {
                     AppLogger.Info($"Migrating legacy config from {AppPaths.LegacyConfigPath} to {AppPaths.ConfigPath}");
@@ -31,11 +30,12 @@ namespace VoidMode
             }
 
             AppLogger.Info("Using default config.");
-            return new AppConfig();
+            return CreateDefaultConfig();
         }
 
         public static void Save(AppConfig config)
         {
+            config.Normalize();
             AppPaths.EnsureAppDataDirectory();
             var json = JsonConvert.SerializeObject(config, Formatting.Indented);
             File.WriteAllText(AppPaths.ConfigPath, json);
@@ -45,7 +45,16 @@ namespace VoidMode
         private static AppConfig LoadFromFile(string path)
         {
             var json = File.ReadAllText(path);
-            return JsonConvert.DeserializeObject<AppConfig>(json) ?? new AppConfig();
+            var config = JsonConvert.DeserializeObject<AppConfig>(json) ?? CreateDefaultConfig();
+            config.Normalize();
+            return config;
+        }
+
+        private static AppConfig CreateDefaultConfig()
+        {
+            var config = new AppConfig();
+            config.Normalize();
+            return config;
         }
     }
 }

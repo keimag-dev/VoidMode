@@ -7,7 +7,7 @@ namespace VoidMode
 {
     public partial class SettingsWindow : Window
     {
-        private AppConfig _config = new AppConfig();
+        private readonly AppConfig _config;
 
         public SettingsWindow() : this(ConfigManager.Load())
         {
@@ -17,12 +17,13 @@ namespace VoidMode
         {
             InitializeComponent();
             _config = config;
+            _config.Normalize();
             LoadSettings();
         }
 
         private void LoadSettings()
         {
-            AppListbox.ItemsSource = new List<string>(_config.AppPaths);
+            RefreshList();
             ChkBlackScreen.IsChecked = _config.EnableBlackScreen;
             ChkDisplayOff.IsChecked = _config.EnableDisplayOff;
             ChkMute.IsChecked = _config.EnableMute;
@@ -69,6 +70,7 @@ namespace VoidMode
                 ConfigManager.Save(_config);
 
                 var voidWindow = new VoidModeWindow(_config);
+                Application.Current.MainWindow = voidWindow;
                 voidWindow.Show();
                 Close();
             }

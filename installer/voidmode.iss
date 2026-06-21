@@ -2,6 +2,7 @@
 AppName=VoidMode
 AppVersion=1.0.0
 DefaultDirName={autopf}\VoidMode
+UsePreviousAppDir=no
 DefaultGroupName=VoidMode
 AllowNoIcons=yes
 ArchitecturesAllowed=x64compatible
@@ -20,7 +21,7 @@ Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 Name: "desktopicon"; Description: "デスクトップにアイコンを作成する"; GroupDescription: "追加タスク:"
 
 [Files]
-; publishフォルダ内の配布物を含める。CIではSingleFile設定により基本的にVoidMode.exeのみになる。
+; CI publishes VoidMode as a self-contained single-file executable.
 Source: "..\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]

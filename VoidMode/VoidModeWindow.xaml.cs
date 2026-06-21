@@ -33,7 +33,10 @@ namespace VoidMode
         private readonly int? _debugAutoExitSeconds;
         private readonly List<Process> _startedProcesses = new List<Process>();
         private readonly object _processLock = new object();
-        private float _originalVolume = 1.0f;
+        private float? _originalVolume;
+        private bool _audioMuted;
+        private bool _hasExited;
+        private bool _isExiting;
         private bool _isUserInteracting;
         private DispatcherTimer? _focusTimer;
         private DispatcherTimer? _inputTimer;
@@ -47,11 +50,12 @@ namespace VoidMode
         {
             InitializeComponent();
             _config = config;
+            _config.Normalize();
             _debugAutoExitSeconds = debugAutoExitSeconds;
 
             Closing += (s, e) =>
             {
-                if (!_isUserInteracting)
+                if (!_isUserInteracting && !_hasExited)
                 {
                     e.Cancel = true;
                 }
@@ -152,80 +156,108 @@ namespace VoidMode
             }
         }
 
-        private void ExitVoidMode()
+        private async void ExitVoidMode()
         {
+            if (_hasExited)
+            {
+                return;
+            }
+
+            _hasExited = true;
+            _isExiting = true;
+            _isUserInteracting = true;
             AppLogger.Info("Exiting VoidMode.");
+            StopTimers();
+
+            await Task.Run(() =>
+            {
+                if (_config.EnableDisplayOff)
+                {
+                    TurnDisplayOn();
+                }
+
+                if (_config.EnableMute)
+                {
+                    RestoreVolumeWithRetry();
+                }
+
+                if (_config.EnableAutoKill)
+                {
+                    KillStartedProcesses();
+                }
+            });
+
+            Application.Current.Shutdown();
+        }
+
+        private void StopTimers()
+        {
             _focusTimer?.Stop();
             _inputTimer?.Stop();
             _debugAutoExitTimer?.Stop();
-
-            if (_config.EnableDisplayOff)
-            {
-                TurnDisplayOn();
-            }
-
-            if (_config.EnableMute)
-            {
-                RestoreVolumeWithRetry();
-            }
-
-            if (_config.EnableAutoKill)
-            {
-                List<Process> processesToKill;
-                lock (_processLock)
-                {
-                    processesToKill = new List<Process>(_startedProcesses);
-                }
-
-                foreach (var process in processesToKill)
-                {
-                    try
-                    {
-                        if (!process.HasExited)
-                        {
-                            AppLogger.Info($"Killing process: {process.ProcessName} ({process.Id})");
-                            process.Kill();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        AppLogger.Error("Failed to kill started process.", ex);
-                    }
-                }
-            }
-
-            Application.Current.Shutdown();
         }
 
         private async Task StartVoidModeAsync()
         {
             AppLogger.Info("Entering VoidMode.");
 
-            // Root cause of the installer crash was config.json being written under Program Files.
-            // This remains asynchronous only to keep the WPF UI responsive while starting apps,
-            // talking to the audio endpoint, and broadcasting monitor power messages.
-            await Task.Run(() =>
+            try
             {
-                StartConfiguredApplications();
-
-                if (_config.EnableMute)
+                await Task.Run(() =>
                 {
-                    MuteAudio();
-                }
+                    if (_isExiting)
+                    {
+                        return;
+                    }
 
-                if (_config.EnableDisplayOff)
+                    StartConfiguredApplications();
+
+                    if (_isExiting)
+                    {
+                        return;
+                    }
+
+                    if (_config.EnableMute)
+                    {
+                        MuteAudio();
+                    }
+
+                    if (_isExiting)
+                    {
+                        return;
+                    }
+
+                    if (_config.EnableDisplayOff)
+                    {
+                        TurnDisplayOff();
+                    }
+                });
+
+                if (!_isExiting)
                 {
-                    TurnDisplayOff();
+                    AppLogger.Info("VoidMode startup actions completed.");
                 }
-            });
-
-            AppLogger.Info("VoidMode startup actions completed.");
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Error("VoidMode startup actions failed.", ex);
+            }
         }
 
         private void StartConfiguredApplications()
         {
             foreach (var path in _config.AppPaths)
             {
+                if (_isExiting)
+                {
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    continue;
+                }
+
                 try
                 {
                     AppLogger.Info($"Starting configured app: {path}");
@@ -245,33 +277,91 @@ namespace VoidMode
             }
         }
 
+        private void KillStartedProcesses()
+        {
+            List<Process> processesToKill;
+            lock (_processLock)
+            {
+                processesToKill = new List<Process>(_startedProcesses);
+                _startedProcesses.Clear();
+            }
+
+            foreach (var process in processesToKill)
+            {
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        AppLogger.Info($"Closing process: {GetProcessDescription(process)}");
+                        if (!process.CloseMainWindow() || !process.WaitForExit(3000))
+                        {
+                            AppLogger.Info($"Killing process tree: {GetProcessDescription(process)}");
+                            process.Kill(entireProcessTree: true);
+                            process.WaitForExit(3000);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.Error("Failed to stop started process.", ex);
+                }
+                finally
+                {
+                    process.Dispose();
+                }
+            }
+        }
+
+        private static string GetProcessDescription(Process process)
+        {
+            try
+            {
+                return $"{process.ProcessName} ({process.Id})";
+            }
+            catch
+            {
+                return "unknown process";
+            }
+        }
+
         private void MuteAudio()
         {
             try
             {
                 using var enumerator = new MMDeviceEnumerator();
-                var device = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                using var device = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
                 _originalVolume = device.AudioEndpointVolume.MasterVolumeLevelScalar;
                 device.AudioEndpointVolume.MasterVolumeLevelScalar = 0;
+                _audioMuted = true;
                 AppLogger.Info($"Muted audio endpoint. Previous volume={_originalVolume:0.00}");
             }
             catch (Exception ex)
             {
+                _audioMuted = false;
+                _originalVolume = null;
                 AppLogger.Error("Failed to mute audio.", ex);
             }
         }
 
         private void RestoreVolumeWithRetry()
         {
+            if (!_audioMuted || !_originalVolume.HasValue)
+            {
+                AppLogger.Info("Skipping audio restore because mute did not complete successfully.");
+                return;
+            }
+
             const int maxAttempts = 10;
+            var targetVolume = _originalVolume.Value;
             for (var attempt = 1; attempt <= maxAttempts; attempt++)
             {
                 try
                 {
                     using var enumerator = new MMDeviceEnumerator();
-                    var device = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-                    device.AudioEndpointVolume.MasterVolumeLevelScalar = _originalVolume;
-                    AppLogger.Info($"Restored audio volume to {_originalVolume:0.00} on attempt {attempt}.");
+                    using var device = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                    device.AudioEndpointVolume.MasterVolumeLevelScalar = targetVolume;
+                    _audioMuted = false;
+                    AppLogger.Info($"Restored audio volume to {targetVolume:0.00} on attempt {attempt}.");
                     return;
                 }
                 catch (Exception ex)
@@ -287,46 +377,34 @@ namespace VoidMode
 
         private void TurnDisplayOn()
         {
-            try
-            {
-                AppLogger.Info("Sending monitor power-on message before restore.");
-                var result = SendMessageTimeout(
-                    HWND_BROADCAST,
-                    WM_SYSCOMMAND,
-                    (IntPtr)SC_MONITORPOWER,
-                    (IntPtr)MONITOR_ON,
-                    SMTO_ABORTIFHUNG,
-                    1000,
-                    out _);
-
-                AppLogger.Info($"Monitor power-on message result: {result}");
-                System.Threading.Thread.Sleep(500);
-            }
-            catch (Exception ex)
-            {
-                AppLogger.Error("Failed to turn display on.", ex);
-            }
+            SendMonitorPowerMessage(MONITOR_ON, "power-on");
+            System.Threading.Thread.Sleep(500);
         }
 
         private void TurnDisplayOff()
         {
+            SendMonitorPowerMessage(MONITOR_OFF, "power-off");
+        }
+
+        private void SendMonitorPowerMessage(int monitorState, string action)
+        {
             try
             {
-                AppLogger.Info("Sending monitor power-off message.");
+                AppLogger.Info($"Sending monitor {action} message.");
                 var result = SendMessageTimeout(
                     HWND_BROADCAST,
                     WM_SYSCOMMAND,
                     (IntPtr)SC_MONITORPOWER,
-                    (IntPtr)MONITOR_OFF,
+                    (IntPtr)monitorState,
                     SMTO_ABORTIFHUNG,
                     1000,
                     out _);
 
-                AppLogger.Info($"Monitor power-off message result: {result}");
+                AppLogger.Info($"Monitor {action} message result: {result}");
             }
             catch (Exception ex)
             {
-                AppLogger.Error("Failed to turn display off.", ex);
+                AppLogger.Error($"Failed to send monitor {action} message.", ex);
             }
         }
     }

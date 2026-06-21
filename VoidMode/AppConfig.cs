@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace VoidMode
@@ -10,5 +9,10 @@ namespace VoidMode
         public bool EnableDisplayOff { get; set; } = true;
         public bool EnableMute { get; set; } = true;
         public bool EnableAutoKill { get; set; } = false;
+
+        public void Normalize()
+        {
+            AppPaths ??= new List<string>();
+        }
     }
 }

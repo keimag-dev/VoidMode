@@ -19,38 +19,46 @@ namespace VoidMode
 
             if (options.SelfTest)
             {
-                var exitCode = RunSelfTest();
-                Shutdown(exitCode);
+                Shutdown(RunSelfTest());
                 return;
             }
 
             var config = ConfigManager.Load();
-
             if (options.DebugSafeMode)
             {
-                AppLogger.Info("Debug safe mode enabled. Disabling app launch, audio mute, display-off, and auto-kill for this run.");
-                config = new AppConfig
-                {
-                    AppPaths = new List<string>(),
-                    EnableBlackScreen = config.EnableBlackScreen,
-                    EnableDisplayOff = false,
-                    EnableMute = false,
-                    EnableAutoKill = false
-                };
+                config = CreateSafeModeConfig(config);
             }
 
             if (options.StartDirectly)
             {
-                AppLogger.Info("Starting VoidMode directly from command line.");
-                var voidWindow = new VoidModeWindow(config, options.DebugAutoExitSeconds);
-                MainWindow = voidWindow;
-                voidWindow.Show();
+                ShowVoidMode(config, options.DebugAutoExitSeconds);
                 return;
             }
 
             var settings = new SettingsWindow(config);
             MainWindow = settings;
             settings.Show();
+        }
+
+        private static AppConfig CreateSafeModeConfig(AppConfig source)
+        {
+            AppLogger.Info("Debug safe mode enabled. Disabling app launch, audio mute, display-off, and auto-kill for this run.");
+            return new AppConfig
+            {
+                AppPaths = new List<string>(),
+                EnableBlackScreen = source.EnableBlackScreen,
+                EnableDisplayOff = false,
+                EnableMute = false,
+                EnableAutoKill = false
+            };
+        }
+
+        private void ShowVoidMode(AppConfig config, int? debugAutoExitSeconds = null)
+        {
+            AppLogger.Info("Starting VoidMode directly from command line.");
+            var voidWindow = new VoidModeWindow(config, debugAutoExitSeconds);
+            MainWindow = voidWindow;
+            voidWindow.Show();
         }
 
         private static int RunSelfTest()
@@ -63,16 +71,7 @@ namespace VoidMode
 
                 var config = ConfigManager.Load();
                 ConfigManager.Save(config);
-
-                try
-                {
-                    var device = new MMDeviceEnumerator().GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-                    AppLogger.Info($"Audio endpoint detected: {device.FriendlyName}, volume={device.AudioEndpointVolume.MasterVolumeLevelScalar:0.00}");
-                }
-                catch (Exception audioEx)
-                {
-                    AppLogger.Error("Audio endpoint probe failed during self-test.", audioEx);
-                }
+                ProbeAudioEndpoint();
 
                 AppLogger.Info("Self-test completed successfully.");
                 return 0;
@@ -81,6 +80,20 @@ namespace VoidMode
             {
                 AppLogger.Error("Self-test failed.", ex);
                 return 1;
+            }
+        }
+
+        private static void ProbeAudioEndpoint()
+        {
+            try
+            {
+                using var enumerator = new MMDeviceEnumerator();
+                using var device = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                AppLogger.Info($"Audio endpoint detected: {device.FriendlyName}, volume={device.AudioEndpointVolume.MasterVolumeLevelScalar:0.00}");
+            }
+            catch (Exception audioEx)
+            {
+                AppLogger.Error("Audio endpoint probe failed during self-test.", audioEx);
             }
         }
 
