@@ -36,6 +36,5 @@ jobs:
         with:
           files: |
             ./publish/VoidModeInstaller.exe
-            ./publish/VoidMode.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

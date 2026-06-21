@@ -12,14 +12,14 @@ WizardStyle=modern
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
-Name: "japanese"; MessagesFile: "compiler:Default.isl"
+Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "デスクトップにアイコンを作成する"; GroupDescription: "追加タスク:"
 
 [Files]
-; .issファイルから見た相対パス (installer/ -> ../publish/) を指定
-Source: "..\publish\VoidMode.exe"; DestDir: "{app}"; Flags: ignoreversion
+; publishフォルダ内のすべてのファイルを再帰的に含めることで依存関係の欠落を防ぐ
+Source: "..\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\VoidMode"; Filename: "{app}\VoidMode.exe"
