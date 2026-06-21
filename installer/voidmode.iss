@@ -27,4 +27,4 @@ Name: "{group}\VoidMode"; Filename: "{app}\VoidMode.exe"
 Name: "{autodesktop}\VoidMode"; Filename: "{app}\VoidMode.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\VoidMode.exe"; Description: "VoidModeを起動する"; Flags: nowait postinstall skipifalreadyrunning
+Filename: "{app}\VoidMode.exe"; Description: "VoidModeを起動する"; Flags: nowait skipifalreadyrunning
