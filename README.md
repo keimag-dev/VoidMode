@@ -17,11 +17,11 @@ VoidModeは、PCを個人の作業端末として利用する状態から、Herm
 
 ## ライティングの消灯設定 (事前準備)
 
-VoidMode自体が直接ハードウェアを制御するのではなく、**「VoidModeが最前面にいる時に、ライティングソフト側で消灯プロファイルを適用する」**という仕組みを利用しています。そのため、以下の事前設定が必要です。
+VoidMode自体が直接ハードウェアを制御するのではなく、 **「VoidModeが最前面にいる時に、ライティングソフト側で消灯プロファイルを適用する」** という仕組みを利用しています。そのため、以下の事前設定が必要です。
 
 1. ライティング制御ソフトで「すべてのLEDをオフにする」というプロファイルを作成します。
 2. そのプロファイルを、**`VoidMode.exe` が起動・フォーカスされている時に有効になるよう紐付け**ます。  
-  `VoidMode.exe` のパスは、インストール状況によって `C:\Users\<ユーザ名>\AppData\VoidMode\VoidMode.exe` や `C:\Program Files\VoidMode\VoidMode.exe` 等になります。
+  実行ファイルのパスは、 `C:\Program Files (x86)\VoidMode\VoidMode.exe` になります。
 
 ---
 
@@ -31,7 +31,7 @@ VoidMode自体が直接ハードウェアを制御するのではなく、**「V
 1. iCUEを開き、新しいプロファイルを作成します。
 2. そのプロファイル内で、すべてのデバイスのライティングを「オフ」に設定します。
 3. 「プロファイル」設定から、この消灯プロファイルを `VoidMode.exe` にリンクさせます。
-   - `VoidMode.exe` のパスは、インストール状況によって `C:\Users\<ユーザ名>\AppData\VoidMode\VoidMode.exe` や `C:\Program Files\VoidMode\VoidMode.exe` 等になります。
+   - 実行ファイルのパスは、 `C:\Program Files (x86)\VoidMode\VoidMode.exe` になります。
 
 ![iCUE設定画面の画像](docs/Corsair_iCUE.png)
 </details>
@@ -43,7 +43,7 @@ VoidMode自体が直接ハードウェアを制御するのではなく、**「V
 2. 「クイックエフェクト」などでライティングをすべてオフにするか、静止色で黒（または暗い色）に設定します。
 3. 「リンクされたゲーム」セクションで `VoidMode.exe` を追加し、作成した消灯プロファイルを紐付けます。
    - リンクされたゲームセクションの追加ボタンを押した際にVoidModeが見つからない場合には右上の「参照」をクリックしてVoidModeのexeファイルを追加してください。
-   - `VoidMode.exe` のパスは、インストール状況によって `C:\Users\<ユーザ名>\AppData\VoidMode\VoidMode.exe` や `C:\Program Files\VoidMode\VoidMode.exe` 等になります。
+   - 実行ファイルのパスは、 `C:\Program Files (x86)\VoidMode\VoidMode.exe` になります。
 
 ![Razer Synapse設定画面の画像](docs/Razer_Synapse4.png)
 </details>

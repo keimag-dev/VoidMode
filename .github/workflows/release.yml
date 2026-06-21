@@ -19,7 +19,12 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Publish Application
-        run: dotnet publish VoidMode/VoidMode.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=true -o ./publish
+        run: dotnet publish VoidMode/VoidMode.csproj -c Release -r win-x64 --self-contained true -o ./publish
+
+      - name: Clean up debug files
+        run: |
+          Get-ChildItem -Path ./publish -Filter *.pdb -Recurse | Remove-Item -Force
+          Get-ChildItem -Path ./publish -Filter *.xml -Recurse | Remove-Item -Force
 
       - name: Install Inno Setup
         run: choco install innosetup -y
@@ -27,8 +32,6 @@ jobs:
       - name: Compile Inno Setup Installer
         shell: pwsh
         run: |
-          # Inno Setupのコンパイラパスを特定して実行
-          # 通常、Chocolateyでインストールするとパスが通りますが、明示的に呼び出します
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /O"./publish" installer/voidmode.iss
 
       - name: Upload to GitHub Release
