@@ -49,6 +49,7 @@ namespace VoidMode
                 EnableBlackScreen = source.EnableBlackScreen,
                 EnableDisplayOff = false,
                 EnableMute = false,
+                EnableSleepPrevention = false,
                 EnableAutoKill = false
             };
         }
@@ -72,6 +73,7 @@ namespace VoidMode
                 var config = ConfigManager.Load();
                 ConfigManager.Save(config);
                 ProbeAudioEndpoint();
+                ProbePowerRequest();
 
                 AppLogger.Info("Self-test completed successfully.");
                 return 0;
@@ -95,6 +97,13 @@ namespace VoidMode
             {
                 AppLogger.Error("Audio endpoint probe failed during self-test.", audioEx);
             }
+        }
+
+        private static void ProbePowerRequest()
+        {
+            using var powerRequestManager = new PowerRequestManager();
+            powerRequestManager.Enable();
+            powerRequestManager.Disable();
         }
 
         private void RegisterGlobalExceptionLogging()

@@ -27,6 +27,7 @@ namespace VoidMode
             ChkBlackScreen.IsChecked = _config.EnableBlackScreen;
             ChkDisplayOff.IsChecked = _config.EnableDisplayOff;
             ChkMute.IsChecked = _config.EnableMute;
+            ChkSleepPrevention.IsChecked = _config.EnableSleepPrevention;
             ChkAutoKill.IsChecked = _config.EnableAutoKill;
         }
 
@@ -65,6 +66,7 @@ namespace VoidMode
                 _config.EnableBlackScreen = ChkBlackScreen.IsChecked ?? false;
                 _config.EnableDisplayOff = ChkDisplayOff.IsChecked ?? false;
                 _config.EnableMute = ChkMute.IsChecked ?? false;
+                _config.EnableSleepPrevention = ChkSleepPrevention.IsChecked ?? true;
                 _config.EnableAutoKill = ChkAutoKill.IsChecked ?? false;
 
                 ConfigManager.Save(_config);

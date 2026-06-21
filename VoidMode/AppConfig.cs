@@ -8,6 +8,7 @@ namespace VoidMode
         public bool EnableBlackScreen { get; set; } = true;
         public bool EnableDisplayOff { get; set; } = true;
         public bool EnableMute { get; set; } = true;
+        public bool EnableSleepPrevention { get; set; } = true;
         public bool EnableAutoKill { get; set; } = false;
 
         public void Normalize()

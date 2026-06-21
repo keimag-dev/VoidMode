@@ -1,6 +1,6 @@
 [Setup]
 AppName=VoidMode
-AppVersion=1.0.0
+AppVersion=1.1.0
 DefaultDirName={autopf}\VoidMode
 UsePreviousAppDir=no
 DefaultGroupName=VoidMode

@@ -22,25 +22,32 @@ namespace VoidMode
             uint uTimeout,
             out IntPtr lpdwResult);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
+
         private const uint WM_SYSCOMMAND = 0x0112;
         private const int SC_MONITORPOWER = 0xF170;
         private const int MONITOR_OFF = 2;
         private const int MONITOR_ON = -1;
         private const uint SMTO_ABORTIFHUNG = 0x0002;
+        private static readonly TimeSpan DisplayOffEnforcerInterval = TimeSpan.FromMinutes(1);
         private static readonly IntPtr HWND_BROADCAST = new IntPtr(0xffff);
 
         private readonly AppConfig _config;
         private readonly int? _debugAutoExitSeconds;
         private readonly List<Process> _startedProcesses = new List<Process>();
         private readonly object _processLock = new object();
+        private readonly PowerRequestManager _powerRequestManager = new PowerRequestManager();
         private float? _originalVolume;
         private bool _audioMuted;
+        private bool _confirmDialogOpen;
         private bool _hasExited;
         private bool _isExiting;
         private bool _isUserInteracting;
         private DispatcherTimer? _focusTimer;
         private DispatcherTimer? _inputTimer;
         private DispatcherTimer? _debugAutoExitTimer;
+        private DispatcherTimer? _displayOffEnforcerTimer;
 
         public VoidModeWindow() : this(ConfigManager.Load())
         {
@@ -64,6 +71,8 @@ namespace VoidMode
             SetupFocusTimer();
             SetupInputTimer();
             SetupDebugAutoExitTimer();
+            SetupDisplayOffEnforcerTimer();
+            MouseMove += (s, e) => RestartDisplayOffEnforcerTimer();
 
             Loaded += async (s, e) => await StartVoidModeAsync();
         }
@@ -126,10 +135,84 @@ namespace VoidMode
             _debugAutoExitTimer.Start();
         }
 
+        private void SetupDisplayOffEnforcerTimer()
+        {
+            if (!_config.EnableDisplayOff)
+            {
+                return;
+            }
+
+            _displayOffEnforcerTimer = new DispatcherTimer
+            {
+                Interval = DisplayOffEnforcerInterval
+            };
+            _displayOffEnforcerTimer.Tick += (s, e) => EnforceDisplayOff();
+            _displayOffEnforcerTimer.Start();
+            AppLogger.Info("Display-off enforcer timer started.");
+        }
+
+        private void EnforceDisplayOff()
+        {
+            if (_isExiting || _confirmDialogOpen || !_config.EnableDisplayOff)
+            {
+                return;
+            }
+
+            var idleTime = GetSystemIdleTime();
+            if (idleTime < DisplayOffEnforcerInterval)
+            {
+                AppLogger.Info($"Skipping display-off enforcement because last system input was {idleTime.TotalSeconds:0.0} seconds ago.");
+                return;
+            }
+
+            AppLogger.Info("Display-off enforcer timer elapsed. Re-sending display-off command.");
+            HideReturnMessage();
+            TurnDisplayOff();
+        }
+
+        private static TimeSpan GetSystemIdleTime()
+        {
+            var lastInputInfo = new LASTINPUTINFO
+            {
+                cbSize = (uint)Marshal.SizeOf<LASTINPUTINFO>()
+            };
+
+            if (!GetLastInputInfo(ref lastInputInfo))
+            {
+                AppLogger.Error($"Failed to query last input time. Win32Error={Marshal.GetLastWin32Error()}");
+                return DisplayOffEnforcerInterval;
+            }
+
+            var idleMilliseconds = Environment.TickCount64 - lastInputInfo.dwTime;
+            return TimeSpan.FromMilliseconds(Math.Max(0, idleMilliseconds));
+        }
+
+        private void HideReturnMessage()
+        {
+            TxtMessage.Visibility = Visibility.Collapsed;
+        }
+
+        private void RestartDisplayOffEnforcerTimer()
+        {
+            if (_displayOffEnforcerTimer == null || _confirmDialogOpen || _isExiting)
+            {
+                return;
+            }
+
+            _displayOffEnforcerTimer.Stop();
+            _displayOffEnforcerTimer.Start();
+        }
+
         private void ShowReturnMessage()
         {
+            if (_confirmDialogOpen || _isExiting)
+            {
+                return;
+            }
+
             _isUserInteracting = true;
             TxtMessage.Visibility = Visibility.Visible;
+            RestartDisplayOffEnforcerTimer();
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
@@ -143,7 +226,12 @@ namespace VoidMode
 
         private void HandleEscape()
         {
+            _confirmDialogOpen = true;
+            _displayOffEnforcerTimer?.Stop();
+
             var result = MessageBox.Show("通常モードに復帰しますか？", "VoidMode", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            _confirmDialogOpen = false;
+
             if (result == MessageBoxResult.Yes)
             {
                 _isUserInteracting = true;
@@ -152,7 +240,12 @@ namespace VoidMode
             else
             {
                 _isUserInteracting = false;
-                TxtMessage.Visibility = Visibility.Collapsed;
+                HideReturnMessage();
+                if (_config.EnableDisplayOff)
+                {
+                    TurnDisplayOff();
+                    _displayOffEnforcerTimer?.Start();
+                }
             }
         }
 
@@ -171,19 +264,26 @@ namespace VoidMode
 
             await Task.Run(() =>
             {
-                if (_config.EnableDisplayOff)
+                try
                 {
-                    TurnDisplayOn();
-                }
+                    if (_config.EnableDisplayOff)
+                    {
+                        TurnDisplayOn();
+                    }
 
-                if (_config.EnableMute)
-                {
-                    RestoreVolumeWithRetry();
-                }
+                    if (_config.EnableMute)
+                    {
+                        RestoreVolumeWithRetry();
+                    }
 
-                if (_config.EnableAutoKill)
+                    if (_config.EnableAutoKill)
+                    {
+                        KillStartedProcesses();
+                    }
+                }
+                finally
                 {
-                    KillStartedProcesses();
+                    _powerRequestManager.Disable();
                 }
             });
 
@@ -195,6 +295,7 @@ namespace VoidMode
             _focusTimer?.Stop();
             _inputTimer?.Stop();
             _debugAutoExitTimer?.Stop();
+            _displayOffEnforcerTimer?.Stop();
         }
 
         private async Task StartVoidModeAsync()
@@ -208,6 +309,11 @@ namespace VoidMode
                     if (_isExiting)
                     {
                         return;
+                    }
+
+                    if (_config.EnableSleepPrevention)
+                    {
+                        _powerRequestManager.Enable();
                     }
 
                     StartConfiguredApplications();
@@ -406,6 +512,13 @@ namespace VoidMode
             {
                 AppLogger.Error($"Failed to send monitor {action} message.", ex);
             }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct LASTINPUTINFO
+        {
+            public uint cbSize;
+            public uint dwTime;
         }
     }
 }
