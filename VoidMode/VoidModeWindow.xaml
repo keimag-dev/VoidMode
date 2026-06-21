@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="VoidMode" WindowStyle="None" ResizeMode="NoResize" 
         WindowState="Maximized" WindowStartupLocation="CenterScreen" 
-        Background="Black" Topmost="True">
+        Background="Black" Topmost="True"
+        Icon="pack://application:,,,/app.ico">
     <Grid>
         <TextBlock x:Name="TxtMessage" 
                    Text="Escキーで通常モードに復帰します" 

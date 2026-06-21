@@ -3,5 +3,5 @@
   "EnableBlackScreen": true,
   "EnableDisplayOff": true,
   "EnableMute": true,
-  "EnableAutoKill": false
+  "EnableAutoKill": true
 }
