@@ -7,18 +7,22 @@ namespace VoidMode
 {
     public partial class SettingsWindow : Window
     {
-        private AppConfig _config;
+        private AppConfig _config = new AppConfig();
 
-        public SettingsWindow()
+        public SettingsWindow() : this(ConfigManager.Load())
+        {
+        }
+
+        public SettingsWindow(AppConfig config)
         {
             InitializeComponent();
+            _config = config;
             LoadSettings();
         }
 
         private void LoadSettings()
         {
-            _config = ConfigManager.Load();
-            AppListbox.ItemsSource = _config.AppPaths;
+            AppListbox.ItemsSource = new List<string>(_config.AppPaths);
             ChkBlackScreen.IsChecked = _config.EnableBlackScreen;
             ChkDisplayOff.IsChecked = _config.EnableDisplayOff;
             ChkMute.IsChecked = _config.EnableMute;
@@ -27,8 +31,11 @@ namespace VoidMode
 
         private void AddBtn_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Executable files (*.exe)|*.exe|All files (*.*)|*.*";
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "Executable files (*.exe)|*.exe|All files (*.*)|*.*"
+            };
+
             if (openFileDialog.ShowDialog() == true)
             {
                 _config.AppPaths.Add(openFileDialog.FileName);
@@ -47,24 +54,33 @@ namespace VoidMode
 
         private void RefreshList()
         {
-            // Refresh ListBox binding
-            var items = new List<string>(_config.AppPaths);
-            AppListbox.ItemsSource = items;
+            AppListbox.ItemsSource = new List<string>(_config.AppPaths);
         }
 
         private void StartBtn_Click(object sender, RoutedEventArgs e)
         {
-            _config.EnableBlackScreen = ChkBlackScreen.IsChecked ?? false;
-            _config.EnableDisplayOff = ChkDisplayOff.IsChecked ?? false;
-            _config.EnableMute = ChkMute.IsChecked ?? false;
-            _config.EnableAutoKill = ChkAutoKill.IsChecked ?? false;
-            
-            ConfigManager.Save(_config);
-            
-            // Launch Server Mode
-            var voidWindow = new VoidModeWindow();
-            voidWindow.Show();
-            this.Close();
+            try
+            {
+                _config.EnableBlackScreen = ChkBlackScreen.IsChecked ?? false;
+                _config.EnableDisplayOff = ChkDisplayOff.IsChecked ?? false;
+                _config.EnableMute = ChkMute.IsChecked ?? false;
+                _config.EnableAutoKill = ChkAutoKill.IsChecked ?? false;
+
+                ConfigManager.Save(_config);
+
+                var voidWindow = new VoidModeWindow(_config);
+                voidWindow.Show();
+                Close();
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Error("Failed to enter VoidMode from settings window.", ex);
+                MessageBox.Show(
+                    $"VoidModeへの移行に失敗しました。\n\n{ex.Message}\n\nログ: {AppPaths.LogPath}",
+                    "VoidMode",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
     }
 }

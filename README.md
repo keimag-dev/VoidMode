@@ -21,7 +21,7 @@ VoidMode自体が直接ハードウェアを制御するのではなく、 **「
 
 1. ライティング制御ソフトで「すべてのLEDをオフにする」というプロファイルを作成します。
 2. そのプロファイルを、**`VoidMode.exe` が起動・フォーカスされている時に有効になるよう紐付け**ます。  
-  実行ファイルのパスは、 `C:\Program Files (x86)\VoidMode\VoidMode.exe` になります。
+  実行ファイルのパスは、 `C:\Program Files\VoidMode\VoidMode.exe` になります。
 
 ---
 
@@ -31,7 +31,7 @@ VoidMode自体が直接ハードウェアを制御するのではなく、 **「
 1. iCUEを開き、新しいプロファイルを作成します。
 2. そのプロファイル内で、すべてのデバイスのライティングを「オフ」に設定します。
 3. 「プロファイル」設定から、この消灯プロファイルを `VoidMode.exe` にリンクさせます。
-   - 実行ファイルのパスは、 `C:\Program Files (x86)\VoidMode\VoidMode.exe` になります。
+   - 実行ファイルのパスは、 `C:\Program Files\VoidMode\VoidMode.exe` になります。
 
 ![iCUE設定画面の画像](docs/Corsair_iCUE.png)
 </details>
@@ -43,7 +43,7 @@ VoidMode自体が直接ハードウェアを制御するのではなく、 **「
 2. 「クイックエフェクト」などでライティングをすべてオフにするか、静止色で黒（または暗い色）に設定します。
 3. 「リンクされたゲーム」セクションで `VoidMode.exe` を追加し、作成した消灯プロファイルを紐付けます。
    - リンクされたゲームセクションの追加ボタンを押した際にVoidModeが見つからない場合には右上の「参照」をクリックしてVoidModeのexeファイルを追加してください。
-   - 実行ファイルのパスは、 `C:\Program Files (x86)\VoidMode\VoidMode.exe` になります。
+   - 実行ファイルのパスは、 `C:\Program Files\VoidMode\VoidMode.exe` になります。
 
 ![Razer Synapse設定画面の画像](docs/Razer_Synapse4.png)
 </details>
@@ -53,7 +53,9 @@ VoidMode自体が直接ハードウェアを制御するのではなく、 **「
 ## セットアップと使い方
 
 ### 1. 起動
-アプリケーションをインストールすると、`C:\Program Files (x86)\VoidMode` にインストールされます。起動すると、まず設定画面が開きます。
+アプリケーションをインストールすると、`C:\Program Files\VoidMode` にインストールされます。起動すると、まず設定画面が開きます。
+
+ユーザー設定は、インストール先ではなく `%LOCALAPPDATA%\VoidMode\config.json` に保存されます。通常は `C:\Users\<ユーザー名>\AppData\Local\VoidMode\config.json` です。
 
 ![設定画面の画像](docs/Settings.png)
 
@@ -64,6 +66,11 @@ VoidMode自体が直接ハードウェアを制御するのではなく、 **「
     - `Enable Display Off`: モニターの電源をオフにします。
     - `Enable Audio Mute`: 音声をミュートにします。
     - `Auto-Kill Startup Apps on Exit`: 復帰時に起動したアプリを自動的に終了します。
+
+設定ファイルとログはユーザーごとの以下の場所に保存されます。
+
+- 設定: `%LOCALAPPDATA%\VoidMode\config.json`
+- ログ: `%LOCALAPPDATA%\VoidMode\logs\voidmode.log`
 
 ### 3. サーバーモードへの移行
 「Enter VoidMode」ボタンをクリックすると、設定に基づいた処理が実行され、サーバーモードに移行します。以下のような真っ黒な画面となり、対応するディスプレイではディスプレイ自体の電源が切れます。
@@ -77,7 +84,7 @@ VoidMode自体が直接ハードウェアを制御するのではなく、 **「
 
 ## 技術スタック
 
-- **言語**: C# (.NET 8)
+- **言語**: C# (.NET 10)
 - **UIフレームワーク**: WPF (Windows Presentation Foundation)
 - **主要ライブラリ**:
     - `NAudio`: Windowsオーディオ制御

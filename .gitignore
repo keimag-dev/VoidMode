@@ -1,8 +1,15 @@
 ## .gitignore for .NET / WPF
 
 # Build results
-bin/
-obj/
+[Bb]in/
+[Oo]bj/
+publish/
+artifacts/
+build_test*/
+install_test/
+
+# Local diagnostic scratch projects
+Diag/
 
 # Visual Studio files
 .vs/

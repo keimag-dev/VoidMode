@@ -6,30 +6,46 @@ namespace VoidMode
 {
     public static class ConfigManager
     {
-        private static readonly string ConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
-
         public static AppConfig Load()
         {
-            if (!File.Exists(ConfigPath))
-            {
-                return new AppConfig();
-            }
-
             try
             {
-                string json = File.ReadAllText(ConfigPath);
-                return JsonConvert.DeserializeObject<AppConfig>(json) ?? new AppConfig();
+                if (File.Exists(AppPaths.ConfigPath))
+                {
+                    AppLogger.Info($"Loading config from {AppPaths.ConfigPath}");
+                    return LoadFromFile(AppPaths.ConfigPath);
+                }
+
+                // Migration path for older development builds that stored config next to the executable.
+                if (File.Exists(AppPaths.LegacyConfigPath))
+                {
+                    AppLogger.Info($"Migrating legacy config from {AppPaths.LegacyConfigPath} to {AppPaths.ConfigPath}");
+                    var legacyConfig = LoadFromFile(AppPaths.LegacyConfigPath);
+                    Save(legacyConfig);
+                    return legacyConfig;
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                return new AppConfig();
+                AppLogger.Error("Failed to load config. Falling back to defaults.", ex);
             }
+
+            AppLogger.Info("Using default config.");
+            return new AppConfig();
         }
 
         public static void Save(AppConfig config)
         {
-            string json = JsonConvert.SerializeObject(config, Formatting.Indented);
-            File.WriteAllText(ConfigPath, json);
+            AppPaths.EnsureAppDataDirectory();
+            var json = JsonConvert.SerializeObject(config, Formatting.Indented);
+            File.WriteAllText(AppPaths.ConfigPath, json);
+            AppLogger.Info($"Saved config to {AppPaths.ConfigPath}");
+        }
+
+        private static AppConfig LoadFromFile(string path)
+        {
+            var json = File.ReadAllText(path);
+            return JsonConvert.DeserializeObject<AppConfig>(json) ?? new AppConfig();
         }
     }
 }
