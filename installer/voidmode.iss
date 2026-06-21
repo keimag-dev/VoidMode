@@ -18,9 +18,9 @@ Name: "japanese"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "デスクトップにアイコンを作成する"; GroupDescription: "追加タスク:"
 
 [Files]
-; GitHub Actionsのビルド出力ディレクトリを指定
-Source: "VoidMode.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "config.json"; DestDir: "{app}"; Flags: ignoreversion
+; .issファイルから見た相対パス (installer/ -> ../publish/) を指定
+Source: "..\publish\VoidMode.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\publish\config.json"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\VoidMode"; Filename: "{app}\VoidMode.exe"
